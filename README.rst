@@ -7,7 +7,7 @@ scrapy_rss
    :alt: PyPI Version
 
 .. image:: https://img.shields.io/travis/woxcab/scrapy_rss/master.svg
-   :target: http://travis-ci.com/woxcab/scrapy_rss
+   :target: https://app.travis-ci.com/github/woxcab/scrapy_rss
    :alt: Build Status
 
 .. image:: https://img.shields.io/badge/wheel-yes-brightgreen.svg
@@ -20,7 +20,7 @@ scrapy_rss
 
 Tools to easy generate `RSS feed <http://www.rssboard.org/rss-specification>`_ that contains each scraped item using `Scrapy framework <https://github.com/scrapy/scrapy>`_.
 
-Package works with Python 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8 and 3.9.
+Package works with Python 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 and 3.10.
 
 If you use Python 3.3 then you have to use Scrapy<1.5.0.
 
