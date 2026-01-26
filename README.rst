@@ -366,7 +366,7 @@ or to the :code:`custom_settings` attribute of the spider:
 Backward compatibility notices
 ------------------------------
 Since version 1.0.0 some classes have been renamed, but old-named classes have been kept and marked as deprecated
-for bacward compatibility, so they can still be used.
+for backward compatibility, so they can still be used.
 
 But `some elements <https://github.com/woxcab/scrapy_rss/blob/master/scrapy_rss/rss/item_elements.py>`__
 of :code:`RssItem` have some their attributes renamed in a backward incompatible way:
