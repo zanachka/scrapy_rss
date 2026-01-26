@@ -34,8 +34,11 @@ if Version(scrapy.__version__) >= Version('2.13'):
             except AttributeError:
                 pass
             scraper = Scraper(crawler)
-            scraper.open_spider(spider)
             scraper.crawler.spider = spider
+            if Version(scrapy.__version__) >= Version('2.14'):
+                await scraper.open_spider_async()
+            else:
+                scraper.open_spider(spider)
 
             NSItem0 = predefined_items.NSItem0
             NSItem1 = predefined_items.NSItem1
@@ -54,4 +57,8 @@ if Version(scrapy.__version__) >= Version('2.13'):
                 asyncio.get_running_loop())
             await scraper._process_spidermw_output(RssedItem(), *dummy_params).asFuture(
                 asyncio.get_running_loop())
-            scraper.close_spider()
+
+            if Version(scrapy.__version__) >= Version('2.14'):
+                await scraper.close_spider_async()
+            else:
+                scraper.close_spider()

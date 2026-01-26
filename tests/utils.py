@@ -9,8 +9,6 @@ import pprint
 import six
 from lxml.etree import XMLSyntaxError
 
-from twisted.python.failure import Failure
-from scrapy.pipelines import ItemPipelineManager
 from lxml import etree
 from xmlunittest import XmlTestCase
 from parameterized import parameterized
@@ -184,17 +182,6 @@ class FrozenDict(Mapping):
                 h ^= hash((key, value))
             self._hash = h
         return self._hash
-
-
-class RaisedItemPipelineManager(ItemPipelineManager):
-    def process_item(self, item, spider):
-        d = super(RaisedItemPipelineManager, self).process_item(item, spider)
-        if isinstance(d.result, Failure):
-            failure = d.result
-            d.addErrback(lambda failure: None)  # workaround for Python 2.*
-            print(failure.getTraceback())
-            failure.raiseException()
-        return d
 
 
 class UnorderedXmlTestCase(XmlTestCase):

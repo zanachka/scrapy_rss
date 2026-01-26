@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from packaging.version import Version
 import six
+import scrapy
 from scrapy import signals
 from scrapy.exceptions import NotConfigured, CloseSpider
 from scrapy.utils.misc import load_object
@@ -11,18 +13,23 @@ from .utils import deprecated_class
 
 
 class FeedExportPipeline(object):
-    def __init__(self):
+    def __init__(self, crawler):
         self.files = {}
         self.exporters = {}
+        self.spider = getattr(crawler, 'spider', None)
+
+    def _get_spider(self, spider):
+        return self.spider or spider
 
     @classmethod
     def from_crawler(cls, crawler):
-        pipeline = cls()
+        pipeline = cls(crawler)
         crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
         crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
         return pipeline
 
-    def spider_opened(self, spider):
+    def spider_opened(self, spider=None):
+        spider = self._get_spider(spider)
         try:
             file = open(spider.settings.get('FEED_FILE'), 'wb')
         except TypeError:
@@ -55,12 +62,14 @@ class FeedExportPipeline(object):
                                                namespaces=namespaces, item_cls=item_cls)
         self.exporters[spider].start_exporting()
 
-    def spider_closed(self, spider):
+    def spider_closed(self, spider=None):
+        spider = self._get_spider(spider)
         self.exporters[spider].finish_exporting()
         file = self.files.pop(spider)
         file.close()
 
-    def process_item(self, item, spider):
+    def process_item(self, item, spider=None):
+        spider = self._get_spider(spider)
         self.exporters[spider].export_item(item)
         return item
 

@@ -8,8 +8,13 @@ from scrapy_rss.items import RssItem, FeedItem, RssedItem
 from tests import predefined_items
 
 if Version(scrapy.__version__) < Version('2.13'):
+    spider_settings = {}
+    if Version(scrapy.__version__) >= Version('2.7') and Version(scrapy.__version__) < Version('2.12'):
+        spider_settings['REQUEST_FINGERPRINTER_IMPLEMENTATION'] = '2.7'
+
     class TestSyncScraper:
         class MySpider(scrapy.Spider):
+            custom_settings = spider_settings
             name = 'spider'
 
         def test_spider_output_handling(self):
