@@ -233,7 +233,7 @@ if Version(scrapy.__version__) < Version('2.14'):
             item = item_cls()
             with FeedSettings() as feed_settings:
                 with six.assertRaisesRegex(self, InvalidFeedItemComponentsError,
-                                           r'Missing one or more required components'):
+                                           r'Missing or invalid one or more required components'):
                     with CrawlerContext(**feed_settings) as context:
                         context.ipm.process_item(item, context.spider)
 
@@ -245,7 +245,7 @@ if Version(scrapy.__version__) < Version('2.14'):
 
                 item.enclosure.url = 'http://example.com/content'
                 with six.assertRaisesRegex(self, InvalidFeedItemComponentsError,
-                                           r'Missing one or more required components'):
+                                           r'Missing or invalid one or more required components'):
                     with CrawlerContext(**feed_settings) as context:
                         context.ipm.process_item(item, context.spider)
 
@@ -271,7 +271,7 @@ if Version(scrapy.__version__) < Version('2.14'):
 
                 item.element.first_attribute = 'valid value'
                 with six.assertRaisesRegex(self, InvalidFeedItemComponentsError,
-                                           r'Missing one or more required components'):
+                                           r'Missing or invalid one or more required components'):
                     with CrawlerContext(**feed_settings) as context:
                         context.ipm.process_item(item, context.spider)
 
@@ -337,7 +337,7 @@ if Version(scrapy.__version__) < Version('2.14'):
             with FeedSettings() as feed_settings:
                 for item_cls in (Item10, InvalidItem11, Item20, InvalidItem21, Item3):
                     with six.assertRaisesRegex(self, InvalidFeedItemComponentsError,
-                                               "Missing one or more required components",
+                                               "Missing or invalid one or more required components",
                                                msg=str(item_cls)):
                         with CrawlerContext(**feed_settings) as context:
                             context.ipm.process_item(item_cls(title='Title'), context.spider)
@@ -472,6 +472,39 @@ if Version(scrapy.__version__) < Version('2.14'):
             item6.validate('item')
             self.assertTrue(item6.is_valid())
 
+        @parameterized.expand([
+            (RssItem(title='Title 1', pubDate='Invalid date'),
+             r"time data.* does not match format"),
+            (RssItem(title='Title 2', pubDate='Fri, 01 Dec 2000 23:59:60 +0400'),
+             r"second must be in 0..59"),
+        ])
+        def test_item_attr_serialization(self, item, exc_msg_match):
+            with FeedSettings() as feed_settings:
+                with six.assertRaisesRegex(self, InvalidFeedItemComponentsError, exc_msg_match):
+                    with CrawlerContext(**feed_settings) as context:
+                        context.ipm.process_item(item, context.spider)
+
+        @parameterized.expand([
+            ('Invalid date string', r"time data.* does not match format"),
+            ('Fri, 01 Dec 2000 23:60:59 +0400', r"time data.* does not match format"),
+            ('Fri, 01 Dec 2000 23:59:60 +0400', r"second must be in 0..59"),
+        ])
+        def test_channel_attr_serialization(self, date_str, exc_msg_match):
+            class BadRssItemExporter(FeedItemExporter):
+                def __init__(self, file, channel_title, channel_link, channel_description,
+                             pubdate=date_str,
+                             *args, **kwargs):
+                    super(BadRssItemExporter, self) \
+                        .__init__(file, channel_title, channel_link, channel_description,
+                                  pubdate=pubdate,
+                                  *args, **kwargs)
+
+            with FeedSettings() as feed_settings:
+                crawler_settings = dict(CrawlerContext.default_settings)
+                crawler_settings['FEED_EXPORTER'] = BadRssItemExporter
+                with six.assertRaisesRegex(self, InvalidFeedItemComponentsError, exc_msg_match):
+                    with CrawlerContext(crawler_settings=crawler_settings, **feed_settings):
+                        pass
 
         @parameterized.expand(zip([scrapy.Item, BaseItem, dict]))
         def test_bad_item_cls(self, item_cls):

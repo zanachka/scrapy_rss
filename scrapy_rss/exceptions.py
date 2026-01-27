@@ -86,7 +86,7 @@ class InvalidFeedItemComponentsError(InvalidComponentError):
         if self.component.required_children:
             req_elems = 'required children: ' + ", ".join(map(str, self.component.required_children))
 
-        return ("Missing one or more required components of feed element '{}': {}{}"
+        return ("Missing or invalid one or more required components of feed element '{}': {}{}"
                 .format(self.component, "; ".join(filter(bool, [req_attrs, req_elems])), self.msg)
         )
 

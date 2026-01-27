@@ -139,7 +139,10 @@ class FeedItemExporter(XmlItemExporter):
             except InvalidComponentError as e:
                 raise InvalidFeedItemComponentsError(instance, msg=str(e))
 
-            attrs = instance.serialize_attrs()
+            try:
+                attrs = instance.serialize_attrs()
+            except Exception as e:
+                raise InvalidFeedItemComponentsError(instance, msg=str(e))
             content = attrs.pop(instance.content_name.xml_name, None) if instance.content_name else None
             if xml_name:
                 self.xg.startElementNS(xml_name, qname, attrs)
