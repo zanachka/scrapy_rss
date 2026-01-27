@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import locale
-from datetime import datetime
+import datetime
 import functools
+import re
 import warnings
 try:
     from collections.abc import Mapping, MutableMapping, Iterable
@@ -14,7 +15,7 @@ import six
 
 def get_tzlocal():
     try:
-        tzlocal = datetime.now().astimezone().tzinfo
+        tzlocal = datetime.datetime.now().astimezone().tzinfo
     except (ValueError, TypeError):
         from dateutil.tz import tzlocal
         tzlocal = tzlocal()
@@ -26,16 +27,33 @@ def format_rfc822(date):
 
     Parameters
     ----------
-    date : datetime
+    date : datetime.datetime or datetime.date or str
         Datetime object
 
     Returns
     -------
     str
         Stringified datetime object according to RFC 822 standard
+
+    Raises
+    ------
+    ValueError
+        if date is an invalid formatted string
     """
+    if isinstance(date, six.string_types):
+        if six.PY3:
+            datetime.datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
+        else:
+            datetime.datetime.strptime(date[:25], '%a, %d %b %Y %H:%M:%S')
+            timezone = date[25:]
+            if not re.match(r'^ [+-]\d{4}$', timezone):
+                raise ValueError("Invalid timezone: '{}'".format(timezone))
+        return date
+
     orig_locale = locale.getlocale(locale.LC_TIME)
     locale.setlocale(locale.LC_TIME, 'C')
+    if isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+        date = datetime.datetime(date.year, date.month, date.day)
     if not date.tzinfo:
         date = date.replace(tzinfo=get_tzlocal())
     date = date.strftime('%a, %d %b %Y %H:%M:%S %z')

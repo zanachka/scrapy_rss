@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import time
-from datetime import datetime, timedelta, tzinfo
-from itertools import product
+from datetime import date, datetime, timedelta, tzinfo
+from itertools import chain, product
 import pytest
 import six
 
@@ -24,15 +25,31 @@ class D0(C0):
     pass
 
 
-@pytest.mark.parametrize("dt,timezone_offset", product([
-    datetime.now(),
-    datetime(2000, 1, 1, 0, 0, 0),
-    datetime(2010, 12, 28, 1, 1, 1),
-    datetime(2020, 12, 28, 23, 59, 59),
-], [
-    -10, -1, 0, 2, 10
+@pytest.mark.parametrize("dt,timezone_offset,valid", chain(
+    product([
+        date.today(),
+        datetime.now(),
+        datetime(2000, 1, 1, 0, 0, 0),
+        datetime(2010, 12, 28, 1, 1, 1),
+        datetime(2020, 12, 28, 23, 59, 59),
+    ],
+    [-10, 0, 10] if sys.version_info[0:2] >= (3,) and sys.version_info[0:2] <= (3, 3)
+        else [-10, -4, -1, 0, 2, 5, 10],
+    [True]
+), [
+    ('Fri, 01 Dec 2000 23:59:59 +0000', None, True),
+    ('Fri, 01 Dec 2000 23:59:59 -0500', None, True),
+    ('invalid date', None, False),
+    ('Fri, 31 Nov 2000 23:59:59 +0000', None, False),
+    ('Sat, 32 Dec 2000 23:59:59 +0000', None, False),
+    ('Fri, 01 Dec 2000 24:59:59 +0000', None, False),
+    ('Fri, 01 Dec 2000 23:60:59 +0500', None, False),
+    ('Fri, 01 Dec 2000 23:59:60 +0500', None, False),
+    ('Fri, 01 Dem 2000 23:59:59 +0500', None, False),
+    ('Fri, 01 Dec 2000 23:59:59 +050', None, False),
+    ('Fri, 01 Dec 200 23:59:59 +0000', None, False),
 ]))
-def test_format_rfc822(dt, timezone_offset):
+def test_format_rfc822(dt, timezone_offset, valid):
     class TzOffset(tzinfo):
         def __init__(self, name, offset):
             self._name = name
@@ -50,14 +67,54 @@ def test_format_rfc822(dt, timezone_offset):
         def fromutc(self, dt):
             return dt + self._offset
 
-    tz = TzOffset('Etc/GMT{:+}'.format(-timezone_offset), timedelta(hours=timezone_offset))
-    dt = dt.replace(tzinfo=tz)
-    weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dt.weekday()]
-    month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.month-1]
-    expected = ('{}, {:02} {} {} {:02}:{:02}:{:02} {:+03}00'
-                .format(weekday, dt.day, month, dt.year,
-                        dt.hour, dt.minute, dt.second, timezone_offset))
-    assert format_rfc822(dt) == expected
+    weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    if timezone_offset is not None:
+        tz = TzOffset('Etc/GMT{:+}'.format(-timezone_offset), timedelta(hours=timezone_offset))
+    else:
+        tz = None
+    if isinstance(dt, datetime):
+        dt = dt.replace(tzinfo=tz)
+        expected = ('{}, {:02} {} {} {:02}:{:02}:{:02} {:+03}00'
+                    .format(weekdays[dt.weekday()], dt.day, months[dt.month - 1], dt.year,
+                            dt.hour, dt.minute, dt.second, timezone_offset))
+        if valid:
+            actual = format_rfc822(dt)
+        else:
+            with pytest.raises(ValueError):
+                format_rfc822(dt)
+            return
+
+    elif isinstance(dt, date):
+        old_os_tz = os.environ.get('TZ', None)
+        try:
+            os.environ['TZ'] = tz.tzname(None)
+            time.tzset()
+            if valid:
+                actual = format_rfc822(dt)
+            else:
+                with pytest.raises(ValueError):
+                    format_rfc822(dt)
+                return
+        finally:
+            if old_os_tz:
+                os.environ['TZ'] = old_os_tz
+            else:
+                del os.environ['TZ']
+            time.tzset()
+        expected = ('{}, {:02} {} {} 00:00:00 {:+03}00'
+                    .format(weekdays[dt.weekday()], dt.day, months[dt.month - 1], dt.year,
+                            timezone_offset))
+    else:
+        expected = dt
+        if valid:
+            actual = format_rfc822(dt)
+        else:
+            with pytest.raises(ValueError):
+                format_rfc822(dt)
+            return
+    assert actual == expected
 
 @pytest.mark.parametrize("tz_offset,tz_name",
                          ((n, 'Etc/GMT{:+}'.format(-n) if abs(n) >= 10 or n == 0
