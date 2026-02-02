@@ -54,7 +54,7 @@ class DuplicateOutput:
 
 
 def main(docker_logfile, pytest_logfile):
-    deprecated_pythons = {'py27', 'py33', 'py34', 'py35', 'py36', 'py37', 'py38'}
+    deprecated_pythons = {'py27', 'py33', 'py34', 'py35', 'py36', 'py37', 'py38', 'py39'}
     upcoming_python = 'py314'
     nonparallel_pythons = {'py27', 'py33', 'py34'}
     nonstandard_pythons = deprecated_pythons | {upcoming_python}

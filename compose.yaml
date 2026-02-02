@@ -51,6 +51,11 @@ services:
     build:
       <<: *default-build
       target: py38
+  py39:
+    <<: *base
+    build:
+      <<: *default-build
+      target: py39
   py3:
     <<: *base
     build:
