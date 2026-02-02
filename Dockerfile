@@ -98,7 +98,7 @@ WORKDIR $WORKDIR
 
 
 FROM alpine:3.13 AS py38
-ADD https://bootstrap.pypa.io/pip/3.5/get-pip.py /get-pip.py
+ADD https://bootstrap.pypa.io/pip/3.8/get-pip.py /get-pip.py
 ARG UNAME
 ARG USERID
 ARG GROUPID
